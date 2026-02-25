@@ -1,236 +1,142 @@
 import React, { useState } from 'react';
-import {
-  FileText,
-  Lightbulb,
-  CheckSquare,
-  ArrowRight,
-  ChevronDown,
-  ChevronUp,
-  Check,
-  Copy,
-  ClipboardList,
-} from 'lucide-react';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import type { Meeting } from '../types/meeting';
 
 interface Props {
   meeting: Meeting;
-  onUpdate: (meeting: Meeting) => void;
+  onUpdate: (m: Meeting) => void;
+  onBack: () => void;
 }
 
-function Section({
-  title,
-  icon: Icon,
-  count,
-  color,
-  children,
-  defaultOpen,
-}: {
-  title: string;
-  icon: React.ElementType;
-  count?: number;
-  color: string;
-  children: React.ReactNode;
-  defaultOpen?: boolean;
-}) {
-  const [open, setOpen] = useState(defaultOpen ?? true);
-
+function Section({ title, emoji, count, color, children, defaultOpen = true }: { title: string; emoji: string; count?: number; color: string; children: React.ReactNode; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="glass-card overflow-hidden fade-in">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between p-5 hover:bg-white/5 transition-colors"
-      >
-        <div className="flex items-center gap-3">
-          <div className={`p-2 rounded-xl ${color}`}>
-            <Icon className="w-5 h-5" />
-          </div>
-          <span className="font-semibold text-lg">{title}</span>
+    <View style={s.section}>
+      <TouchableOpacity style={s.sectionHeader} onPress={() => setOpen(!open)} activeOpacity={0.7}>
+        <View style={s.sectionLeft}>
+          <View style={[s.iconBadge, { backgroundColor: color }]}>
+            <Text style={s.emoji}>{emoji}</Text>
+          </View>
+          <Text style={s.sectionTitle}>{title}</Text>
           {count !== undefined && (
-            <span className="bg-white/10 text-gray-300 text-xs font-medium px-2.5 py-0.5 rounded-full">
-              {count}
-            </span>
+            <View style={s.countBadge}><Text style={s.countTxt}>{count}</Text></View>
           )}
-        </div>
-        {open ? <ChevronUp className="w-5 h-5 text-gray-400" /> : <ChevronDown className="w-5 h-5 text-gray-400" />}
-      </button>
-      {open && <div className="px-5 pb-5">{children}</div>}
-    </div>
+        </View>
+        <Text style={s.chevron}>{open ? '▲' : '▼'}</Text>
+      </TouchableOpacity>
+      {open && <View style={s.sectionBody}>{children}</View>}
+    </View>
   );
 }
 
-export default function MeetingResults({ meeting, onUpdate }: Props) {
-  const [copied, setCopied] = useState(false);
-
-  const copyAll = () => {
-    const text = [
-      `# ${meeting.title}`,
-      `Datum: ${new Date(meeting.date).toLocaleDateString('nl-NL')}`,
-      '',
-      '## Samenvatting',
-      meeting.summary,
-      '',
-      '## Beslismomenten',
-      ...meeting.decisions.map((d, i) => `${i + 1}. ${d.text}${d.context ? ` (${d.context})` : ''}`),
-      '',
-      '## Actiepunten',
-      ...meeting.actionItems.map((a, i) => `${i + 1}. [${a.done ? 'x' : ' '}] ${a.text} → ${a.assignee}`),
-      '',
-      '## Vervolgpunten',
-      ...meeting.followUps.map((f, i) => `${i + 1}. ${f.text} → ${f.responsible} (${f.deadline})`),
-    ].join('\n');
-    navigator.clipboard.writeText(text);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
+export default function MeetingResults({ meeting, onUpdate, onBack }: Props) {
   const toggleAction = (id: string) => {
-    onUpdate({
-      ...meeting,
-      actionItems: meeting.actionItems.map((a) => (a.id === id ? { ...a, done: !a.done } : a)),
-    });
+    onUpdate({ ...meeting, actionItems: meeting.actionItems.map((a) => a.id === id ? { ...a, done: !a.done } : a) });
   };
-
   const toggleFollowUp = (id: string) => {
-    onUpdate({
-      ...meeting,
-      followUps: meeting.followUps.map((f) => (f.id === id ? { ...f, done: !f.done } : f)),
-    });
+    onUpdate({ ...meeting, followUps: meeting.followUps.map((f) => f.id === id ? { ...f, done: !f.done } : f) });
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header row */}
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold">{meeting.title}</h2>
-        <button onClick={copyAll} className="btn-ghost flex items-center gap-2 text-sm">
-          {copied ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-          {copied ? 'Gekopieerd!' : 'Kopieer alles'}
-        </button>
-      </div>
+    <ScrollView style={s.container} contentContainerStyle={s.content}>
+      <TouchableOpacity onPress={onBack} style={s.backBtn}>
+        <Text style={s.backTxt}>← Terug</Text>
+      </TouchableOpacity>
 
-      {/* Summary */}
-      <Section title="Samenvatting" icon={FileText} color="bg-blue-500/20 text-blue-400" defaultOpen>
-        <p className="text-gray-300 leading-relaxed">{meeting.summary}</p>
+      <Text style={s.title}>{meeting.title}</Text>
+      <Text style={s.date}>{new Date(meeting.date).toLocaleDateString('nl-NL', { day: 'numeric', month: 'long', year: 'numeric' })}</Text>
+
+      <Section title="Samenvatting" emoji="📝" color="rgba(59,130,246,0.2)">
+        <Text style={s.bodyText}>{meeting.summary}</Text>
       </Section>
 
-      {/* Decisions */}
-      <Section
-        title="Beslismomenten"
-        icon={Lightbulb}
-        count={meeting.decisions.length}
-        color="bg-amber-500/20 text-amber-400"
-        defaultOpen
-      >
+      <Section title="Beslismomenten" emoji="💡" count={meeting.decisions.length} color="rgba(245,158,11,0.2)">
         {meeting.decisions.length === 0 ? (
-          <p className="text-gray-500 text-sm">Geen beslismomenten gedetecteerd.</p>
-        ) : (
-          <ul className="space-y-3">
-            {meeting.decisions.map((d) => (
-              <li key={d.id} className="flex gap-3 p-3 bg-white/5 rounded-xl">
-                <Lightbulb className="w-5 h-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                <div>
-                  <p className="text-gray-200 font-medium">{d.text}</p>
-                  {d.context && <p className="text-gray-500 text-sm mt-1">{d.context}</p>}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+          <Text style={s.emptyTxt}>Geen beslismomenten gedetecteerd.</Text>
+        ) : meeting.decisions.map((d) => (
+          <View key={d.id} style={s.itemCard}>
+            <Text style={s.itemText}>{d.text}</Text>
+            {d.context ? <Text style={s.itemSub}>{d.context}</Text> : null}
+          </View>
+        ))}
       </Section>
 
-      {/* Action Items */}
-      <Section
-        title="Actiepunten"
-        icon={CheckSquare}
-        count={meeting.actionItems.length}
-        color="bg-emerald-500/20 text-emerald-400"
-        defaultOpen
-      >
+      <Section title="Actiepunten" emoji="✅" count={meeting.actionItems.length} color="rgba(16,185,129,0.2)">
         {meeting.actionItems.length === 0 ? (
-          <p className="text-gray-500 text-sm">Geen actiepunten gedetecteerd.</p>
-        ) : (
-          <ul className="space-y-2">
-            {meeting.actionItems.map((a) => (
-              <li
-                key={a.id}
-                className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors"
-                onClick={() => toggleAction(a.id)}
-              >
-                <div
-                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    a.done ? 'bg-emerald-500 border-emerald-500' : 'border-gray-500'
-                  }`}
-                >
-                  {a.done && <Check className="w-3 h-3 text-white" />}
-                </div>
-                <span className={`flex-1 ${a.done ? 'line-through text-gray-500' : 'text-gray-200'}`}>
-                  {a.text}
-                </span>
-                {a.assignee && (
-                  <span className="text-xs bg-indigo-500/20 text-indigo-300 px-2 py-1 rounded-lg">
-                    {a.assignee}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
+          <Text style={s.emptyTxt}>Geen actiepunten gedetecteerd.</Text>
+        ) : meeting.actionItems.map((a) => (
+          <TouchableOpacity key={a.id} style={s.checkItem} onPress={() => toggleAction(a.id)} activeOpacity={0.7}>
+            <View style={[s.checkbox, a.done && s.checkboxDone]}>
+              {a.done && <Text style={s.checkMark}>✓</Text>}
+            </View>
+            <Text style={[s.checkText, a.done && s.checkedText]}>{a.text}</Text>
+            {a.assignee && <View style={s.assigneeBadge}><Text style={s.assigneeTxt}>{a.assignee}</Text></View>}
+          </TouchableOpacity>
+        ))}
       </Section>
 
-      {/* Follow-ups */}
-      <Section
-        title="Vervolgpunten"
-        icon={ArrowRight}
-        count={meeting.followUps.length}
-        color="bg-purple-500/20 text-purple-400"
-        defaultOpen={false}
-      >
+      <Section title="Vervolgpunten" emoji="➡️" count={meeting.followUps.length} color="rgba(139,92,246,0.2)" defaultOpen={false}>
         {meeting.followUps.length === 0 ? (
-          <p className="text-gray-500 text-sm">Geen vervolgpunten gedetecteerd.</p>
-        ) : (
-          <ul className="space-y-2">
-            {meeting.followUps.map((f) => (
-              <li
-                key={f.id}
-                className="flex items-center gap-3 p-3 bg-white/5 rounded-xl cursor-pointer hover:bg-white/10 transition-colors"
-                onClick={() => toggleFollowUp(f.id)}
-              >
-                <div
-                  className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                    f.done ? 'bg-purple-500 border-purple-500' : 'border-gray-500'
-                  }`}
-                >
-                  {f.done && <Check className="w-3 h-3 text-white" />}
-                </div>
-                <span className={`flex-1 ${f.done ? 'line-through text-gray-500' : 'text-gray-200'}`}>
-                  {f.text}
-                </span>
-                <div className="flex items-center gap-2">
-                  {f.responsible && (
-                    <span className="text-xs bg-purple-500/20 text-purple-300 px-2 py-1 rounded-lg">
-                      {f.responsible}
-                    </span>
-                  )}
-                  {f.deadline && (
-                    <span className="text-xs bg-white/10 text-gray-400 px-2 py-1 rounded-lg">
-                      {f.deadline}
-                    </span>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+          <Text style={s.emptyTxt}>Geen vervolgpunten gedetecteerd.</Text>
+        ) : meeting.followUps.map((f) => (
+          <TouchableOpacity key={f.id} style={s.checkItem} onPress={() => toggleFollowUp(f.id)} activeOpacity={0.7}>
+            <View style={[s.checkbox, f.done && s.checkboxPurple]}>
+              {f.done && <Text style={s.checkMark}>✓</Text>}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={[s.checkText, f.done && s.checkedText]}>{f.text}</Text>
+              <View style={s.metaRow}>
+                {f.responsible && <Text style={s.metaTxt}>{f.responsible}</Text>}
+                {f.deadline && <Text style={s.metaTxt}>{f.deadline}</Text>}
+              </View>
+            </View>
+          </TouchableOpacity>
+        ))}
       </Section>
 
-      {/* Transcript */}
       {meeting.transcript && (
-        <Section title="Transcript" icon={ClipboardList} color="bg-gray-500/20 text-gray-400" defaultOpen={false}>
-          <pre className="text-gray-400 text-sm leading-relaxed whitespace-pre-wrap font-sans max-h-80 overflow-y-auto">
-            {meeting.transcript}
-          </pre>
+        <Section title="Transcript" emoji="📋" color="rgba(107,114,128,0.2)" defaultOpen={false}>
+          <Text style={s.transcript}>{meeting.transcript}</Text>
         </Section>
       )}
-    </div>
+
+      <View style={{ height: 40 }} />
+    </ScrollView>
   );
 }
+
+const s = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0a0a1a' },
+  content: { padding: 20 },
+  backBtn: { marginBottom: 16 },
+  backTxt: { color: '#818cf8', fontSize: 16, fontWeight: '500' },
+  title: { color: '#fff', fontSize: 24, fontWeight: '700', marginBottom: 4 },
+  date: { color: '#666', fontSize: 14, marginBottom: 24 },
+  section: { backgroundColor: 'rgba(255,255,255,0.04)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)', borderRadius: 16, marginBottom: 12, overflow: 'hidden' },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 16 },
+  sectionLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  iconBadge: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  emoji: { fontSize: 18 },
+  sectionTitle: { color: '#fff', fontSize: 17, fontWeight: '600' },
+  countBadge: { backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
+  countTxt: { color: '#ccc', fontSize: 12, fontWeight: '600' },
+  chevron: { color: '#666', fontSize: 10 },
+  sectionBody: { paddingHorizontal: 16, paddingBottom: 16 },
+  bodyText: { color: '#d1d5db', fontSize: 15, lineHeight: 24 },
+  emptyTxt: { color: '#555', fontSize: 14 },
+  itemCard: { backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 14, marginBottom: 8 },
+  itemText: { color: '#e5e7eb', fontSize: 15, fontWeight: '500' },
+  itemSub: { color: '#777', fontSize: 13, marginTop: 4 },
+  checkItem: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: 'rgba(255,255,255,0.04)', borderRadius: 12, padding: 14, marginBottom: 8 },
+  checkbox: { width: 22, height: 22, borderRadius: 6, borderWidth: 2, borderColor: '#555', alignItems: 'center', justifyContent: 'center' },
+  checkboxDone: { backgroundColor: '#10b981', borderColor: '#10b981' },
+  checkboxPurple: { backgroundColor: '#8b5cf6', borderColor: '#8b5cf6' },
+  checkMark: { color: '#fff', fontSize: 13, fontWeight: '700' },
+  checkText: { flex: 1, color: '#e5e7eb', fontSize: 15 },
+  checkedText: { textDecorationLine: 'line-through', color: '#555' },
+  assigneeBadge: { backgroundColor: 'rgba(99,102,241,0.2)', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  assigneeTxt: { color: '#a5b4fc', fontSize: 12 },
+  metaRow: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  metaTxt: { color: '#777', fontSize: 12 },
+  transcript: { color: '#888', fontSize: 13, lineHeight: 22 },
+});

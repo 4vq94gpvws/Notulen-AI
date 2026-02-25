@@ -21,10 +21,7 @@ export class AudioRecorder {
 
   stop(): Promise<Blob> {
     return new Promise((resolve) => {
-      if (!this.mediaRecorder) {
-        resolve(new Blob());
-        return;
-      }
+      if (!this.mediaRecorder) { resolve(new Blob()); return; }
       this.mediaRecorder.onstop = () => {
         const blob = new Blob(this.chunks, { type: 'audio/webm' });
         this.stream?.getTracks().forEach((t) => t.stop());
@@ -36,9 +33,5 @@ export class AudioRecorder {
 
   getElapsed(): number {
     return this.startTime ? Math.floor((Date.now() - this.startTime) / 1000) : 0;
-  }
-
-  isRecording(): boolean {
-    return this.mediaRecorder?.state === 'recording';
   }
 }

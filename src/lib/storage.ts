@@ -1,38 +1,16 @@
-import { Meeting, AppSettings } from '../types/meeting';
+import type { ApiKeys } from '../types/meeting';
 
-const MEETINGS_KEY = 'meeting-app-meetings';
-const SETTINGS_KEY = 'meeting-app-settings';
+const API_KEY = 'notulenai_api_keys';
 
-export function loadMeetings(): Meeting[] {
+export function loadKeys(): ApiKeys | null {
   try {
-    const data = localStorage.getItem(MEETINGS_KEY);
-    return data ? JSON.parse(data) : [];
+    const raw = localStorage.getItem(API_KEY);
+    return raw ? JSON.parse(raw) : null;
   } catch {
-    return [];
+    return null;
   }
 }
 
-export function saveMeetings(meetings: Meeting[]) {
-  localStorage.setItem(MEETINGS_KEY, JSON.stringify(meetings));
-}
-
-export function loadSettings(): AppSettings {
-  try {
-    const data = localStorage.getItem(SETTINGS_KEY);
-    return data ? JSON.parse(data) : {
-      groqApiKey: '',
-      openRouterApiKey: '',
-      openRouterModel: 'meta-llama/llama-3.3-70b-instruct',
-    };
-  } catch {
-    return {
-      groqApiKey: '',
-      openRouterApiKey: '',
-      openRouterModel: 'meta-llama/llama-3.3-70b-instruct',
-    };
-  }
-}
-
-export function saveSettings(settings: AppSettings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+export function saveKeys(keys: ApiKeys): void {
+  localStorage.setItem(API_KEY, JSON.stringify(keys));
 }

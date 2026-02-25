@@ -24,7 +24,6 @@ export interface Meeting {
   title: string;
   date: string;
   duration: number;
-  audioBlob?: Blob;
   transcript?: string;
   summary?: string;
   decisions: Decision[];

@@ -1,86 +1,85 @@
 import React, { useState } from 'react';
-import { Key, X, ExternalLink } from 'lucide-react';
+import { View, Text, TextInput, TouchableOpacity, Modal, StyleSheet, Linking } from 'react-native';
 import type { ApiKeys } from '../types/meeting';
 
 interface Props {
+  visible: boolean;
+  initial?: ApiKeys;
   onSave: (keys: ApiKeys) => void;
   onClose: () => void;
-  initial?: ApiKeys;
+  canClose: boolean;
 }
 
-export default function ApiKeyModal({ onSave, onClose, initial }: Props) {
+export default function ApiKeyModal({ visible, initial, onSave, onClose, canClose }: Props) {
   const [groqKey, setGroqKey] = useState(initial?.groqKey || '');
   const [openRouterKey, setOpenRouterKey] = useState(initial?.openRouterKey || '');
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="glass-card p-8 max-w-lg w-full fade-in">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-indigo-500/20 rounded-xl">
-              <Key className="w-5 h-5 text-indigo-400" />
-            </div>
-            <h2 className="text-xl font-semibold">API Keys instellen</h2>
-          </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
-            <X className="w-5 h-5 text-gray-400" />
-          </button>
-        </div>
+    <Modal visible={visible} transparent animationType="fade">
+      <View style={s.overlay}>
+        <View style={s.card}>
+          <View style={s.header}>
+            <Text style={s.title}>API Keys instellen</Text>
+            {canClose && (
+              <TouchableOpacity onPress={onClose} style={s.closeBtn}>
+                <Text style={s.closeTxt}>✕</Text>
+              </TouchableOpacity>
+            )}
+          </View>
 
-        <div className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              Groq API Key
-              <span className="text-gray-500 font-normal"> — voor Whisper transcriptie</span>
-            </label>
-            <input
-              type="password"
-              className="input-field"
-              placeholder="gsk_..."
-              value={groqKey}
-              onChange={(e) => setGroqKey(e.target.value)}
-            />
-            <a
-              href="https://console.groq.com/keys"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 mt-1.5"
-            >
-              Key aanmaken bij Groq <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
+          <Text style={s.label}>Groq API Key</Text>
+          <Text style={s.sub}>Voor Whisper transcriptie</Text>
+          <TextInput
+            style={s.input}
+            placeholder="gsk_..."
+            placeholderTextColor="#555"
+            secureTextEntry
+            value={groqKey}
+            onChangeText={setGroqKey}
+          />
+          <TouchableOpacity onPress={() => Linking.openURL('https://console.groq.com/keys')}>
+            <Text style={s.link}>Key aanmaken bij Groq →</Text>
+          </TouchableOpacity>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-300 mb-2">
-              OpenRouter API Key
-              <span className="text-gray-500 font-normal"> — voor samenvatting & analyse</span>
-            </label>
-            <input
-              type="password"
-              className="input-field"
-              placeholder="sk-or-..."
-              value={openRouterKey}
-              onChange={(e) => setOpenRouterKey(e.target.value)}
-            />
-            <a
-              href="https://openrouter.ai/keys"
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center gap-1 text-xs text-indigo-400 hover:text-indigo-300 mt-1.5"
-            >
-              Key aanmaken bij OpenRouter <ExternalLink className="w-3 h-3" />
-            </a>
-          </div>
+          <Text style={[s.label, { marginTop: 20 }]}>OpenRouter API Key</Text>
+          <Text style={s.sub}>Voor samenvatting & analyse</Text>
+          <TextInput
+            style={s.input}
+            placeholder="sk-or-..."
+            placeholderTextColor="#555"
+            secureTextEntry
+            value={openRouterKey}
+            onChangeText={setOpenRouterKey}
+          />
+          <TouchableOpacity onPress={() => Linking.openURL('https://openrouter.ai/keys')}>
+            <Text style={s.link}>Key aanmaken bij OpenRouter →</Text>
+          </TouchableOpacity>
 
-          <button
-            onClick={() => onSave({ groqKey, openRouterKey })}
+          <TouchableOpacity
+            style={[s.saveBtn, (!groqKey || !openRouterKey) && s.disabled]}
             disabled={!groqKey || !openRouterKey}
-            className="btn-primary w-full mt-2"
+            onPress={() => onSave({ groqKey, openRouterKey })}
           >
-            Opslaan
-          </button>
-        </div>
-      </div>
-    </div>
+            <Text style={s.saveTxt}>Opslaan</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
   );
 }
+
+const s = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', padding: 20 },
+  card: { backgroundColor: '#1a1a2e', borderRadius: 20, padding: 24, width: '100%', maxWidth: 420, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  title: { color: '#fff', fontSize: 20, fontWeight: '700' },
+  closeBtn: { padding: 8 },
+  closeTxt: { color: '#888', fontSize: 18 },
+  label: { color: '#e0e0e0', fontSize: 14, fontWeight: '600', marginTop: 4 },
+  sub: { color: '#666', fontSize: 12, marginBottom: 8 },
+  input: { backgroundColor: 'rgba(255,255,255,0.06)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', borderRadius: 12, padding: 14, color: '#fff', fontSize: 15 },
+  link: { color: '#818cf8', fontSize: 12, marginTop: 6 },
+  saveBtn: { backgroundColor: '#4f46e5', borderRadius: 12, padding: 16, alignItems: 'center', marginTop: 24 },
+  disabled: { opacity: 0.4 },
+  saveTxt: { color: '#fff', fontSize: 16, fontWeight: '600' },
+});
